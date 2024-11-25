@@ -26,11 +26,6 @@ export default function Cart() {
   const { user } = useAuth();
   const [error, setError] = useState(null);
 
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
-
   if (cart.length === 0) {
     return (
       <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
@@ -55,20 +50,26 @@ export default function Cart() {
   }
 
   const handleCheckout = async () => {
+    if (!user) {
+      // If user is not logged in, redirect to login page
+      navigate('/login', { 
+        state: { 
+          returnTo: '/cart',
+          message: 'Please sign in to complete your purchase.' 
+        }
+      });
+      return;
+    }
+
     try {
-      console.log('Checking profile for user:', user.id);
       // Check if user has a profile
       const { data: profile, error: profileError } = await getUserProfile(user.id);
       
-      console.log('Profile check result:', { profile, profileError });
-      
       if (profileError) {
-        console.error('Profile check error:', profileError);
         throw profileError;
       }
 
       if (!profile) {
-        console.log('No profile found, redirecting to signup');
         setError('Please complete your profile before checking out');
         setTimeout(() => {
           navigate('/login?tab=signup');
@@ -76,7 +77,6 @@ export default function Cart() {
         return;
       }
 
-      console.log('Profile found, proceeding to checkout');
       // If profile exists, proceed to checkout
       navigate('/checkout');
     } catch (error) {
@@ -87,30 +87,30 @@ export default function Cart() {
 
   return (
     <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
-      <Typography variant="h4" gutterBottom>
-        Shopping Cart
-      </Typography>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
       <Paper elevation={3} sx={{ 
         mt: { xs: 4, sm: 8 }, 
         p: { xs: 2, sm: 4 }
       }}>
+        <Typography variant="h4" gutterBottom>
+          Shopping Cart
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         {cart.map((item) => (
-          <Box key={item.id} sx={{ py: 2 }}>
-            <Grid container alignItems="center" spacing={2}>
+          <Box key={item.id} sx={{ my: 2 }}>
+            <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle1">{item.name}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  AED {item.price.toFixed(2)}
+                  AED {item.price.toFixed(2)} each
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={3}>
                 <Box display="flex" alignItems="center">
                   <IconButton
                     size="small"
@@ -128,42 +128,49 @@ export default function Cart() {
                 </Box>
               </Grid>
               <Grid item xs={12} sm={2}>
-                <Box display="flex" justifyContent="flex-end">
-                  <IconButton
-                    color="error"
-                    onClick={() => removeFromCart(item.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
+                <Typography>
+                  AED {(item.price * item.quantity).toFixed(2)}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={1}>
+                <IconButton
+                  color="error"
+                  onClick={() => removeFromCart(item.id)}
+                >
+                  <DeleteIcon />
+                </IconButton>
               </Grid>
             </Grid>
-            <Divider sx={{ mt: 2 }} />
+            <Divider sx={{ my: 2 }} />
           </Box>
         ))}
 
-        <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default' }}>
+        <Box sx={{ mt: 4 }}>
           <Grid container justifyContent="space-between" alignItems="center">
             <Grid item>
-              <Typography variant="h6">Total</Typography>
-            </Grid>
-            <Grid item>
               <Typography variant="h6">
-                AED {total.toFixed(2)}
+                Total: AED {total.toFixed(2)}
               </Typography>
             </Grid>
+            <Grid item>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => navigate('/shop')}
+                >
+                  Continue Shopping
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleCheckout}
+                  size="large"
+                >
+                  {user ? 'Proceed to Checkout' : 'Sign in to Checkout'}
+                </Button>
+              </Box>
+            </Grid>
           </Grid>
-        </Box>
-
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={handleCheckout}
-          >
-            Proceed to Checkout
-          </Button>
         </Box>
       </Paper>
     </Container>

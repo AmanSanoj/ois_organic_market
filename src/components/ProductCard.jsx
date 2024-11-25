@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useCart } from '../contexts/CartContext'
 import {
   Button,
   Card,
@@ -9,80 +8,91 @@ import {
   IconButton,
   Typography,
   Box,
+  Snackbar,
 } from '@mui/material'
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
 } from '@mui/icons-material'
+import StockStatus from './StockStatus'
 
-function ProductCard({ product }) {
-  const { name, price, image_url, stock_quantity } = product;
-  const { addToCart } = useCart();
-  const [quantity, setQuantity] = useState(1);
+function ProductCard({ product, onAddToCart, showAddToCart = true }) {
+  const { name, price, image_url, stock_quantity } = product
+  const [quantity, setQuantity] = useState(1)
+  const [showSuccess, setShowSuccess] = useState(false)
   
-  // Check if we have stock
-  const hasStock = stock_quantity > 0;
-  
-  // Get stock level indicator
-  const getStockLevel = () => {
-    if (stock_quantity <= 0) return 'Out of Stock';
-    if (stock_quantity < 10) return 'Low Stock';
-    return 'In Stock';
-  };
-
-  // Get color for stock level
-  const getStockColor = () => {
-    if (stock_quantity <= 0) return 'error.main';
-    if (stock_quantity < 10) return 'warning.main';
-    return 'success.main';
-  };
+  const hasStock = stock_quantity > 0
 
   const handleIncrement = () => {
     if (quantity < stock_quantity) {
-      setQuantity(prev => prev + 1);
+      setQuantity(prev => prev + 1)
     }
-  };
+  }
 
   const handleDecrement = () => {
-    setQuantity(prev => Math.max(1, prev - 1));
-  };
+    setQuantity(prev => Math.max(1, prev - 1))
+  }
 
   const handleAddToCart = () => {
-    addToCart(product, quantity);
-    setQuantity(1);
-  };
+    onAddToCart(product, quantity)
+    setQuantity(1)
+    setShowSuccess(true)
+  }
 
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Card 
+      elevation={3}
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+      }}
+    >
       <CardMedia
         component="img"
         height="200"
         image={image_url || 'https://via.placeholder.com/200'}
         alt={name}
+        sx={{ objectFit: 'contain', p: 2 }}
       />
-      <CardContent>
-        <Typography gutterBottom variant="h6" component="div">
+      
+      <CardContent sx={{ flexGrow: 1 }}>
+        <Typography gutterBottom variant="h6" component="h2">
           {name}
         </Typography>
-        <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'bold', mb: 1 }}>
-          {price.toFixed(2)} AED
+        <Typography variant="h6" color="primary" gutterBottom>
+          AED {price.toFixed(2)}
         </Typography>
-        <Typography variant="body2" color={getStockColor()}>
-          {getStockLevel()}
-        </Typography>
+        <Box sx={{ mt: 1 }}>
+          <StockStatus quantity={stock_quantity} />
+        </Box>
       </CardContent>
-      <CardActions>
-        {hasStock ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', px: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <IconButton
+
+      {showAddToCart && hasStock && (
+        <CardActions sx={{ p: 2, pt: 0 }}>
+          <Box sx={{ 
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1
+          }}>
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1
+            }}>
+              <IconButton 
                 size="small"
                 onClick={handleDecrement}
                 disabled={quantity <= 1}
               >
                 <RemoveIcon />
               </IconButton>
-              <Typography sx={{ mx: 2 }}>{quantity}</Typography>
+              <Typography>
+                {quantity}
+              </Typography>
               <IconButton
                 size="small"
                 onClick={handleIncrement}
@@ -92,27 +102,26 @@ function ProductCard({ product }) {
               </IconButton>
             </Box>
             <Button
+              fullWidth
               variant="contained"
               onClick={handleAddToCart}
-              sx={{ ml: 'auto' }}
-              size="small"
+              disabled={!hasStock}
             >
               Add to Cart
             </Button>
           </Box>
-        ) : (
-          <Button 
-            size="small" 
-            color="primary" 
-            disabled
-            fullWidth
-          >
-            Out of Stock
-          </Button>
-        )}
-      </CardActions>
+        </CardActions>
+      )}
+
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={2000}
+        onClose={() => setShowSuccess(false)}
+        message="Added to cart"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Card>
-  );
+  )
 }
 
 export default ProductCard

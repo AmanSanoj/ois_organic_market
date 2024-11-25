@@ -95,61 +95,63 @@ export default function Orders() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
-      <Typography variant="h4" gutterBottom>
+    <Container maxWidth="sm" sx={{ px: { xs: 2, sm: 3 } }}>
+      <Typography variant="h4" sx={{ mb: 2 }}>
         My Orders
       </Typography>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {orders.map((order) => (
           <Grid item xs={12} key={order.id}>
-            <Paper elevation={3} sx={{ 
-              mt: { xs: 4, sm: 8 }, 
-              p: { xs: 2, sm: 4 }
-            }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">
+            <Paper elevation={2} sx={{ p: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="h6" sx={{ fontSize: '1.2rem' }}>
                   Order #{order.id.slice(0, 8)}
                 </Typography>
                 <Chip
                   label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                   color={getStatusColor(order.status)}
                   variant="filled"
+                  size="small"
                 />
               </Box>
 
-              <Typography color="text.secondary" gutterBottom>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
                 Placed on {formatDate(order.created_at)}
               </Typography>
 
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Delivery Details:
-                </Typography>
-                <Typography>
-                  Student: {order.user_profiles.student_name}
-                </Typography>
-                <Typography>
-                  Class: {order.user_profiles.student_class}-{order.user_profiles.student_section}
-                </Typography>
-                <Typography gutterBottom>
-                  GEMS ID: xxxxxx{order.user_profiles.gems_id_last_six}
-                </Typography>
-              </Box>
-
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
+              <Box>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontSize: '1rem' }}>
                   Items:
                 </Typography>
-                {order.items.map((item, index) => (
-                  <Typography key={index}>
-                    {item.name} x {item.quantity} = AED {(item.price * item.quantity).toFixed(2)}
-                  </Typography>
-                ))}
+                <Box sx={{ ml: 1 }}>
+                  {order.items.map((item, index) => (
+                    <Box key={index} sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      mb: 0.5,
+                      gap: 1
+                    }}>
+                      <Typography variant="body1" sx={{ flex: 1, minWidth: 0 }}>
+                        {item.name} × {item.quantity}
+                      </Typography>
+                      <Typography variant="body1" sx={{ flexShrink: 0 }}>
+                        AED {(item.price * item.quantity).toFixed(2)}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Box>
 
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                <Typography variant="h6">
+              <Box sx={{ 
+                mt: 1, 
+                pt: 1, 
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                display: 'flex', 
+                justifyContent: 'flex-end' 
+              }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
                   Total: AED {order.total_amount.toFixed(2)}
                 </Typography>
               </Box>

@@ -3,21 +3,32 @@ import { useAuth } from './AuthContext'
 import { isAdmin } from '../services/supabase'
 
 const CartContext = createContext()
+const CART_STORAGE_KEY = 'gems_garden_cart'
 
 export function useCart() {
   return useContext(CartContext)
 }
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState([])
+  const [cart, setCart] = useState(() => {
+    // Initialize cart from localStorage if available
+    const savedCart = localStorage.getItem(CART_STORAGE_KEY)
+    return savedCart ? JSON.parse(savedCart) : []
+  })
   const { user } = useAuth()
 
   // Clear cart if user is admin
   useEffect(() => {
     if (isAdmin(user)) {
       setCart([])
+      localStorage.removeItem(CART_STORAGE_KEY)
     }
   }, [user])
+
+  // Persist cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart))
+  }, [cart])
 
   const addToCart = (product, quantity = 1) => {
     if (isAdmin(user)) {
@@ -71,10 +82,16 @@ export function CartProvider({ children }) {
 
   const clearCart = () => {
     setCart([])
+    localStorage.removeItem(CART_STORAGE_KEY)
   }
 
   const total = cart.reduce(
     (total, item) => total + item.price * item.quantity,
+    0
+  )
+
+  const itemCount = cart.reduce(
+    (count, item) => count + item.quantity,
     0
   )
 
@@ -85,6 +102,7 @@ export function CartProvider({ children }) {
     updateQuantity,
     clearCart,
     total,
+    itemCount,
   }
 
   return (

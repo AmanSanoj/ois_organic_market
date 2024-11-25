@@ -23,7 +23,7 @@ import { signOut, isAdmin } from '../services/supabase'
 function Navbar() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { cart } = useCart()
+  const { itemCount } = useCart()
   const [anchorElNav, setAnchorElNav] = useState(null)
   const [anchorElUser, setAnchorElUser] = useState(null)
 
@@ -50,6 +50,9 @@ function Navbar() {
 
   const pages = [
     { name: 'Shop', path: '/shop' },
+  ]
+
+  const authenticatedPages = [
     { name: 'Orders', path: '/orders' },
     { name: 'Profile', path: '/profile' },
   ]
@@ -60,13 +63,13 @@ function Navbar() {
     { name: 'Orders', path: '/admin/orders' },
   ]
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
   const isAdminUser = user && isAdmin(user)
 
   return (
     <AppBar position="static">
       <Container maxWidth="lg">
         <Toolbar disableGutters>
+          {/* Desktop Logo */}
           <Typography
             variant="h6"
             component={RouterLink}
@@ -79,9 +82,10 @@ function Navbar() {
               textDecoration: 'none',
             }}
           >
-            GEMS Garden
+            OIS Organic Garden
           </Typography>
 
+          {/* Mobile Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
@@ -111,11 +115,20 @@ function Navbar() {
                 display: { xs: 'block', md: 'none' },
               }}
             >
-              {!isAdminUser && pages.map((page) => (
-                <MenuItem key={page.name} onClick={handleCloseNavMenu} component={RouterLink} to={page.path}>
-                  <Typography textAlign="center">{page.name}</Typography>
-                </MenuItem>
-              ))}
+              {!isAdminUser && (
+                <>
+                  {pages.map((page) => (
+                    <MenuItem key={page.name} onClick={handleCloseNavMenu} component={RouterLink} to={page.path}>
+                      <Typography textAlign="center">{page.name}</Typography>
+                    </MenuItem>
+                  ))}
+                  {user && authenticatedPages.map((page) => (
+                    <MenuItem key={page.name} onClick={handleCloseNavMenu} component={RouterLink} to={page.path}>
+                      <Typography textAlign="center">{page.name}</Typography>
+                    </MenuItem>
+                  ))}
+                </>
+              )}
               {isAdminUser && adminPages.map((page) => (
                 <MenuItem key={page.name} onClick={handleCloseNavMenu} component={RouterLink} to={page.path}>
                   <Typography textAlign="center">{page.name}</Typography>
@@ -124,6 +137,7 @@ function Navbar() {
             </Menu>
           </Box>
 
+          {/* Mobile Logo */}
           <Typography
             variant="h6"
             component={RouterLink}
@@ -137,21 +151,37 @@ function Navbar() {
               textDecoration: 'none',
             }}
           >
-            GEMS Garden
+            OIS Organic Garden
           </Typography>
 
+          {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-            {!isAdminUser && pages.map((page) => (
-              <Button
-                key={page.name}
-                component={RouterLink}
-                to={page.path}
-                onClick={handleCloseNavMenu}
-                sx={{ my: 2, color: 'white', display: 'block' }}
-              >
-                {page.name}
-              </Button>
-            ))}
+            {!isAdminUser && (
+              <>
+                {pages.map((page) => (
+                  <Button
+                    key={page.name}
+                    component={RouterLink}
+                    to={page.path}
+                    onClick={handleCloseNavMenu}
+                    sx={{ my: 2, color: 'white', display: 'block' }}
+                  >
+                    {page.name}
+                  </Button>
+                ))}
+                {user && authenticatedPages.map((page) => (
+                  <Button
+                    key={page.name}
+                    component={RouterLink}
+                    to={page.path}
+                    onClick={handleCloseNavMenu}
+                    sx={{ my: 2, color: 'white', display: 'block' }}
+                  >
+                    {page.name}
+                  </Button>
+                ))}
+              </>
+            )}
             {isAdminUser && adminPages.map((page) => (
               <Button
                 key={page.name}
@@ -165,28 +195,27 @@ function Navbar() {
             ))}
           </Box>
 
-          <Box sx={{ flexGrow: 0 }}>
+          {/* Right Side Menu */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {!isAdminUser && (
+              <IconButton
+                component={RouterLink}
+                to="/cart"
+                color="inherit"
+                sx={{ mr: 2 }}
+              >
+                <Badge badgeContent={itemCount} color="secondary">
+                  <ShoppingCartIcon />
+                </Badge>
+              </IconButton>
+            )}
             {user ? (
-              <>
-                {!isAdminUser && (
-                  <IconButton
-                    component={RouterLink}
-                    to="/cart"
-                    color="inherit"
-                    sx={{ mr: 2 }}
-                  >
-                    <Badge badgeContent={totalItems} color="secondary">
-                      <ShoppingCartIcon />
-                    </Badge>
-                  </IconButton>
-                )}
-                <Button
-                  onClick={handleSignOut}
-                  color="inherit"
-                >
-                  Sign Out
-                </Button>
-              </>
+              <Button
+                onClick={handleSignOut}
+                color="inherit"
+              >
+                Sign Out
+              </Button>
             ) : (
               <Button
                 component={RouterLink}
