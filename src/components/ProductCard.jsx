@@ -51,10 +51,14 @@ function ProductCard({ product, onAddToCart, showAddToCart = true }) {
     >
       <CardMedia
         component="img"
-        height="200"
         image={image_url || 'https://via.placeholder.com/200'}
         alt={name}
-        sx={{ objectFit: 'contain', p: 2 }}
+        sx={{
+          height: 200,
+          objectFit: 'cover',
+          width: '100%',
+          backgroundColor: 'background.paper',
+        }}
       />
       
       <CardContent sx={{ flexGrow: 1 }}>
