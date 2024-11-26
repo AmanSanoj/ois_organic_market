@@ -19,6 +19,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
 import { signOut, isAdmin } from '../services/supabase'
+import logo from '../assets/logo.png'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -138,21 +139,27 @@ function Navbar() {
           </Box>
 
           {/* Mobile Logo */}
-          <Typography
-            variant="h6"
+          <Box
             component={RouterLink}
             to="/"
             sx={{
               mr: 2,
               display: { xs: 'flex', md: 'none' },
               flexGrow: 1,
-              fontWeight: 700,
-              color: 'inherit',
+              alignItems: 'center',
               textDecoration: 'none',
             }}
           >
-            OIS Organic Garden
-          </Typography>
+            <img
+              src={logo}
+              alt="OIS Organic Garden"
+              style={{
+                height: '40px',
+                width: 'auto',
+                objectFit: 'contain'
+              }}
+            />
+          </Box>
 
           {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
