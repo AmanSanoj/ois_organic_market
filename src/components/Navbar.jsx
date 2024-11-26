@@ -19,7 +19,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
 import { signOut, isAdmin } from '../services/supabase'
-import logo from '../assets/logo.png'
+import logo from '../assets/logo-red.png'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -67,10 +67,27 @@ function Navbar() {
   const isAdminUser = user && isAdmin(user)
 
   return (
-    <AppBar position="static">
+    <AppBar 
+      position="fixed" 
+      sx={{ 
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+      }}
+      elevation={1}
+    >
       <Container maxWidth="lg">
         <Toolbar disableGutters>
           {/* Desktop Logo */}
+          <Box
+            component="img"
+            sx={{
+              height: 40,
+              width: 40,
+              mr: 1,
+              display: { xs: 'none', md: 'flex' }
+            }}
+            alt="OIS Organic Garden Logo"
+            src={logo}
+          />
           <Typography
             variant="h6"
             component={RouterLink}
@@ -140,26 +157,31 @@ function Navbar() {
 
           {/* Mobile Logo */}
           <Box
+            component="img"
+            sx={{
+              height: 35,
+              width: 35,
+              mr: 1,
+              display: { xs: 'flex', md: 'none' }
+            }}
+            alt="OIS Organic Garden Logo"
+            src={logo}
+          />
+          <Typography
+            variant="h6"
             component={RouterLink}
             to="/"
             sx={{
               mr: 2,
               display: { xs: 'flex', md: 'none' },
               flexGrow: 1,
-              alignItems: 'center',
+              fontWeight: 700,
+              color: 'inherit',
               textDecoration: 'none',
             }}
           >
-            <img
-              src={logo}
-              alt="OIS Organic Garden"
-              style={{
-                height: '40px',
-                width: 'auto',
-                objectFit: 'contain'
-              }}
-            />
-          </Box>
+            OIS Organic Garden
+          </Typography>
 
           {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
@@ -204,17 +226,20 @@ function Navbar() {
 
           {/* Right Side Menu */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {!isAdminUser && (
-              <IconButton
-                component={RouterLink}
-                to="/cart"
-                color="inherit"
-                sx={{ mr: 2 }}
-              >
-                <Badge badgeContent={itemCount} color="secondary">
-                  <ShoppingCartIcon />
-                </Badge>
-              </IconButton>
+            {user && (
+              <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                <IconButton
+                  component={RouterLink}
+                  to="/cart"
+                  size="large"
+                  aria-label="show cart items"
+                  color="inherit"
+                >
+                  <Badge badgeContent={itemCount} color="error">
+                    <ShoppingCartIcon />
+                  </Badge>
+                </IconButton>
+              </Box>
             )}
             {user ? (
               <Button

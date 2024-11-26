@@ -28,10 +28,21 @@ function Shop() {
         const { data, error } = await supabase
           .from('products')
           .select('*')
+          .order('stock_quantity', { ascending: false, nullsLast: true })
           .order('name')
         
         if (error) throw error
-        setProducts(data || [])
+        
+        // Sort products: in-stock first, then by name
+        const sortedProducts = [...(data || [])].sort((a, b) => {
+          // First sort by stock availability
+          if ((a.stock_quantity > 0) && !(b.stock_quantity > 0)) return -1;
+          if (!(a.stock_quantity > 0) && (b.stock_quantity > 0)) return 1;
+          // Then sort by name
+          return a.name.localeCompare(b.name);
+        });
+        
+        setProducts(sortedProducts)
       } catch (error) {
         console.error('Error loading products:', error)
         setError('Failed to load products. Please try again later.')
@@ -71,9 +82,19 @@ function Shop() {
         )}
       </Box>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={3} alignItems="stretch">
         {products.map((product) => (
-          <Grid item key={product.id} xs={12} sm={6} md={4}>
+          <Grid 
+            item 
+            key={product.id} 
+            xs={12} 
+            sm={6} 
+            md={4} 
+            sx={{ 
+              display: 'flex',
+              '& > *': { width: '100%' }
+            }}
+          >
             <ProductCard
               product={product}
               onAddToCart={addToCart}
