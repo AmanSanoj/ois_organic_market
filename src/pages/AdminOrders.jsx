@@ -224,8 +224,9 @@ function OrderDetailsDialog({ open, onClose, order }) {
 
 function EarningsReportDialog({ open, onClose, orders }) {
   const [reportData, setReportData] = useState(null);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [error, setError] = useState(null);
 
   const generateReport = () => {
@@ -460,6 +461,12 @@ function EarningsReportDialog({ open, onClose, orders }) {
     printWindow.focus();
     printWindow.print();
   };
+
+  useEffect(() => {
+    if (open) {
+      generateReport();
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
