@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -28,8 +28,9 @@ import {
   ListItem,
   ListItemText,
   Divider,
+  TextField,
 } from '@mui/material'
-import { Visibility, Print } from '@mui/icons-material'
+import { Visibility, Print, Assessment } from '@mui/icons-material'
 import { supabase, isAdmin, updateOrderStatus } from '../services/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -208,7 +209,7 @@ function OrderDetailsDialog({ open, onClose, order }) {
               </Grid>
               <Grid item xs={4}>
                 <Typography variant="subtitle2" color="text.secondary">Order Date</Typography>
-                <Typography>{new Date(order.created_at).toLocaleString()}</Typography>
+                <Typography>{new Date(order.created_at).toLocaleDateString('en-GB')}</Typography>
               </Grid>
             </Grid>
           </Grid>
@@ -219,6 +220,395 @@ function OrderDetailsDialog({ open, onClose, order }) {
       </DialogActions>
     </Dialog>
   )
+}
+
+function EarningsReportDialog({ open, onClose, orders }) {
+  const [reportData, setReportData] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [error, setError] = useState(null);
+
+  const generateReport = () => {
+    try {
+      if (!orders || orders.length === 0) {
+        setError("No orders available");
+        setReportData(null);
+        return;
+      }
+
+      // Filter orders by date range and delivered status
+      const filteredOrders = orders.filter(order => {
+        if (!order.delivered_at || order.status !== 'delivered') return false;
+        const deliveryDate = new Date(order.delivered_at);
+        const start = startDate ? new Date(startDate) : new Date(0);
+        const end = endDate ? new Date(endDate) : new Date();
+        end.setHours(23, 59, 59, 999); // Include the entire end date
+        return deliveryDate >= start && deliveryDate <= end;
+      });
+
+      if (filteredOrders.length === 0) {
+        setError("No delivered orders found in the selected date range");
+        setReportData(null);
+        return;
+      }
+
+      // Group orders by delivery date for daily totals
+      const ordersByDate = filteredOrders.reduce((acc, order) => {
+        const date = new Date(order.delivered_at).toLocaleDateString('en-GB');
+        if (!acc[date]) {
+          acc[date] = {
+            orders: [],
+            total: 0
+          };
+        }
+        acc[date].orders.push(order);
+        acc[date].total += parseFloat(order.total_amount || 0);
+        return acc;
+      }, {});
+
+      // Calculate items summary
+      const itemsSummary = filteredOrders.reduce((acc, order) => {
+        if (!order.items) return acc;
+        order.items.forEach(item => {
+          if (!acc[item.name]) {
+            acc[item.name] = {
+              quantity: 0,
+              revenue: 0
+            };
+          }
+          acc[item.name].quantity += (item.quantity || 0);
+          acc[item.name].revenue += (item.quantity || 0) * (item.price || 0);
+        });
+        return acc;
+      }, {});
+
+      // Calculate total statistics
+      const report = {
+        totalOrders: filteredOrders.length,
+        totalEarnings: filteredOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0),
+        ordersByDate,
+        itemsSummary
+      };
+
+      setError(null);
+      setReportData(report);
+    } catch (err) {
+      console.error('Error generating report:', err);
+      setError("Error generating report. Please try again.");
+      setReportData(null);
+    }
+  };
+
+  const printReport = () => {
+    if (!reportData) return;
+
+    const printWindow = window.open('', '_blank');
+    const dateRange = startDate && endDate 
+      ? `${new Date(startDate).toLocaleDateString('en-GB')} to ${new Date(endDate).toLocaleDateString('en-GB')}`
+      : 'All Time';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Earnings Report - ${dateRange}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px;
+              font-size: 12px;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+            }
+            .section { 
+              margin-bottom: 20px; 
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 10px; 
+            }
+            th, td { 
+              border: 1px solid #ddd; 
+              padding: 6px; 
+              text-align: left;
+              vertical-align: top;
+            }
+            th { 
+              background-color: #f5f5f5; 
+            }
+            .total { 
+              font-weight: bold; 
+            }
+            .items-list {
+              margin: 0;
+              padding-left: 20px;
+            }
+            .items-summary td:nth-child(2),
+            .items-summary td:nth-child(3) {
+              text-align: right;
+            }
+            .order-total {
+              text-align: right;
+            }
+            .day-total {
+              background-color: #f8f8f8;
+              font-weight: bold;
+            }
+            .day-total td {
+              text-align: right;
+            }
+            @media print {
+              thead {
+                display: table-header-group;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>OIS Organic Garden - Earnings Report</h1>
+            <h3>Period: ${dateRange}</h3>
+            <p><strong>Note:</strong> This report includes delivered orders only</p>
+          </div>
+          
+          <div class="section">
+            <h2>Summary</h2>
+            <table>
+              <tr>
+                <th>Total Delivered Orders</th>
+                <td>${reportData.totalOrders}</td>
+              </tr>
+              <tr>
+                <th>Total Earnings</th>
+                <td>AED ${reportData.totalEarnings.toFixed(2)}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>Items Summary</h2>
+            <table class="items-summary">
+              <thead>
+                <tr>
+                  <th>Item Name</th>
+                  <th>Total Quantity</th>
+                  <th>Total Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.entries(reportData.itemsSummary)
+                  .sort((a, b) => b[1].revenue - a[1].revenue)
+                  .map(([itemName, data]) => `
+                    <tr>
+                      <td>${itemName}</td>
+                      <td>${data.quantity}</td>
+                      <td>AED ${data.revenue.toFixed(2)}</td>
+                    </tr>
+                  `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>All Orders</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Parent Name</th>
+                  <th>Items Ordered</th>
+                  <th>Order Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Object.entries(reportData.ordersByDate)
+                  .sort((a, b) => new Date(b[0].split('/').reverse().join('-')) - new Date(a[0].split('/').reverse().join('-')))
+                  .map(([date, dayData]) => `
+                    ${dayData.orders.map(order => `
+                      <tr>
+                        <td>${new Date(order.delivered_at).toLocaleDateString('en-GB')}</td>
+                        <td>${order.user_profiles?.parent_name || 'N/A'}${order.user_profiles?.student_class === 'NA' ? ' (S)' : ''}</td>
+                        <td>
+                          <ul class="items-list">
+                            ${order.items.map(item => `
+                              <li>${item.name} × ${item.quantity}</li>
+                            `).join('')}
+                          </ul>
+                        </td>
+                        <td class="order-total">AED ${parseFloat(order.total_amount).toFixed(2)}</td>
+                      </tr>
+                    `).join('')}
+                    <tr class="day-total">
+                      <td colspan="3">Day Earnings (${date}):</td>
+                      <td>AED ${dayData.total.toFixed(2)}</td>
+                    </tr>
+                  `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="footer">
+            <p>Generated on: ${new Date().toLocaleString('en-GB')}</p>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Earnings Report</DialogTitle>
+      
+      <DialogContent>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="date"
+              label="Start Date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="date"
+              label="End Date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Button 
+              fullWidth 
+              variant="contained" 
+              onClick={generateReport}
+              sx={{ mb: 2 }}
+            >
+              Generate Report
+            </Button>
+            {reportData && (
+              <Button 
+                fullWidth 
+                variant="outlined" 
+                onClick={printReport}
+                sx={{ mb: 2 }}
+              >
+                Print Report
+              </Button>
+            )}
+          </Grid>
+
+          {error && (
+            <Grid item xs={12}>
+              <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+            </Grid>
+          )}
+
+          {reportData && (
+            <>
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom>Summary</Typography>
+                <Typography>Total Delivered Orders: {reportData.totalOrders}</Typography>
+                <Typography>Total Earnings: AED {reportData.totalEarnings.toFixed(2)}</Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Items Summary</Typography>
+                <TableContainer component={Paper}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Item Name</TableCell>
+                        <TableCell align="right">Total Quantity</TableCell>
+                        <TableCell align="right">Total Revenue</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {Object.entries(reportData.itemsSummary)
+                        .sort((a, b) => b[1].revenue - a[1].revenue)
+                        .map(([itemName, data]) => (
+                          <TableRow key={itemName}>
+                            <TableCell>{itemName}</TableCell>
+                            <TableCell align="right">{data.quantity}</TableCell>
+                            <TableCell align="right">AED {data.revenue.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>All Orders</Typography>
+                <TableContainer component={Paper}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Parent Name</TableCell>
+                        <TableCell>Items Ordered</TableCell>
+                        <TableCell align="right">Order Total</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {Object.entries(reportData.ordersByDate)
+                        .sort((a, b) => new Date(b[0].split('/').reverse().join('-')) - new Date(a[0].split('/').reverse().join('-')))
+                        .map(([date, dayData]) => (
+                          <Fragment key={date}>
+                            {dayData.orders.map(order => (
+                              <TableRow key={order.id}>
+                                <TableCell>{new Date(order.delivered_at).toLocaleDateString('en-GB')}</TableCell>
+                                <TableCell>
+                                  {order.user_profiles?.parent_name || 'N/A'}
+                                  {order.user_profiles?.student_class === 'NA' ? ' (S)' : ''}
+                                </TableCell>
+                                <TableCell>
+                                  <List dense>
+                                    {order.items.map(item => (
+                                      <ListItem key={item.name}>
+                                        <ListItemText primary={`${item.name} × ${item.quantity}`} />
+                                      </ListItem>
+                                    ))}
+                                  </List>
+                                </TableCell>
+                                <TableCell align="right">AED {parseFloat(order.total_amount).toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow 
+                              sx={{ 
+                                backgroundColor: '#f8f8f8',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              <TableCell colSpan={3} align="right">Day Earnings ({date}):</TableCell>
+                              <TableCell align="right">AED {dayData.total.toFixed(2)}</TableCell>
+                            </TableRow>
+                          </Fragment>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            </>
+          )}
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
 }
 
 function AdminOrders() {
@@ -232,6 +622,7 @@ function AdminOrders() {
   const [order, setOrder] = useState('desc')
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   // Filter orders based on status
   const filteredOrders = orders.filter(order => 
@@ -295,7 +686,11 @@ function AdminOrders() {
       let formattedOrders = ordersData.map(order => ({
         ...order,
         student_name: order.user_profiles?.student_name || 'N/A',
-        class_name: order.user_profiles ? `${order.user_profiles.student_class}-${order.user_profiles.student_section}` : 'N/A',
+        class_name: order.user_profiles 
+          ? (order.user_profiles.student_class === 'NA' 
+              ? 'Staff' 
+              : `${order.user_profiles.student_class}-${order.user_profiles.student_section}`)
+          : 'N/A',
         gems_id_last_six: order.user_profiles?.gems_id_last_six || 'N/A'
       }))
 
@@ -340,26 +735,37 @@ function AdminOrders() {
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
-      const { error } = await updateOrderStatus(orderId, newStatus)
-      if (error) throw error
+      const updateData = {
+        status: newStatus,
+        ...(newStatus === 'delivered' ? { delivered_at: new Date().toISOString() } : {})
+      };
+
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId);
+
+      if (error) throw error;
 
       // Update local state
       setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
-      ))
+        order.id === orderId 
+          ? { ...order, status: newStatus, ...(newStatus === 'delivered' ? { delivered_at: new Date().toISOString() } : {}) }
+          : order
+      ));
 
       setSnackbar({
         open: true,
         message: 'Order status updated successfully',
         severity: 'success'
-      })
+      });
     } catch (error) {
-      console.error('Error updating status:', error)
+      console.error('Error updating status:', error);
       setSnackbar({
         open: true,
         message: 'Failed to update order status: ' + error.message,
         severity: 'error'
-      })
+      });
     }
   }
 
@@ -447,7 +853,7 @@ function AdminOrders() {
           </style>
         </head>
         <body>
-          <h2>Orders Report - ${new Date().toLocaleDateString()}</h2>
+          <h2>Orders Report - ${new Date().toLocaleDateString('en-GB')}</h2>
           ${printTable.outerHTML}
         </body>
       </html>
@@ -490,13 +896,23 @@ function AdminOrders() {
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Typography variant="h4">Manage Orders</Typography>
-          <Button
-            variant="outlined"
-            startIcon={<Print />}
-            onClick={handlePrint}
-          >
-            Print Table
-          </Button>
+          <Box>
+            <Button
+              variant="contained"
+              startIcon={<Assessment />}
+              onClick={() => setReportDialogOpen(true)}
+              sx={{ mr: 2 }}
+            >
+              Earnings Report
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<Print />}
+              onClick={handlePrint}
+            >
+              Print Table
+            </Button>
+          </Box>
         </Box>
 
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
@@ -586,9 +1002,10 @@ function AdminOrders() {
                     direction={orderBy === 'created_at' ? order : 'asc'}
                     onClick={createSortHandler('created_at')}
                   >
-                    Date
+                    Order Date
                   </TableSortLabel>
                 </TableCell>
+                <TableCell>Delivered Date</TableCell>
                 <TableCell className="no-print">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -605,8 +1022,9 @@ function AdminOrders() {
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </div>
                   </TableCell>
+                  <TableCell>{new Date(order.created_at).toLocaleDateString('en-GB')}</TableCell>
                   <TableCell>
-                    {new Date(order.created_at).toLocaleDateString()}
+                    {order.delivered_at ? new Date(order.delivered_at).toLocaleDateString('en-GB') : '-'}
                   </TableCell>
                   <TableCell className="no-print">
                     <Box sx={{ display: 'flex', gap: 1 }}>
@@ -669,6 +1087,11 @@ function AdminOrders() {
           open={!!selectedOrder}
           onClose={() => setSelectedOrder(null)}
           order={selectedOrder}
+        />
+        <EarningsReportDialog
+          open={reportDialogOpen}
+          onClose={() => setReportDialogOpen(false)}
+          orders={orders}
         />
       </Paper>
     </Container>

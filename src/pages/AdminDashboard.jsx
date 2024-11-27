@@ -93,7 +93,7 @@ function AdminDashboard() {
         })
 
         // Daily revenue
-        const date = new Date(order.created_at).toLocaleDateString()
+        const date = new Date(order.created_at).toLocaleDateString('en-GB')
         dailyRevenue[date] = (dailyRevenue[date] || 0) + Number(order.total_amount)
       })
 

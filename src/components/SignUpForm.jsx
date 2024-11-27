@@ -12,6 +12,11 @@ import {
   ListItemIcon,
   ListItemText,
   Fade,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormControl,
+  FormLabel,
 } from '@mui/material';
 import { CheckCircleOutline, CancelOutlined } from '@mui/icons-material';
 import { signUpWithEmail, createUserProfile, signInWithEmail, deleteAuthUser, checkGemsIdExists } from '../services/supabase';
@@ -24,6 +29,7 @@ export default function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [userType, setUserType] = useState('parent');
   const [passwordRequirements, setPasswordRequirements] = useState({
     length: false,
     uppercase: false,
@@ -49,144 +55,62 @@ export default function SignUpForm() {
         length: value.length >= 8,
         uppercase: /[A-Z]/.test(value),
         lowercase: /[a-z]/.test(value),
-        number: /\d/.test(value),
+        number: /[0-9]/.test(value),
       });
     }
-    
-    // Convert section to uppercase
-    if (name === 'studentSection') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value.toUpperCase()
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const PasswordRequirementsList = () => (
-    <List dense sx={{ mt: 1, bgcolor: 'background.paper' }}>
-      <ListItem>
-        <ListItemIcon sx={{ minWidth: 40 }}>
-          {passwordRequirements.length ? (
-            <CheckCircleOutline 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: '50%',
-                color: 'success.main',
-              }} 
-            />
-          ) : (
-            <CancelOutlined 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: '50%',
-                color: 'error.main',
-              }} 
-            />
-          )}
-        </ListItemIcon>
-        <ListItemText primary="At least 8 characters long" />
-      </ListItem>
-      <ListItem>
-        <ListItemIcon sx={{ minWidth: 40 }}>
-          {passwordRequirements.uppercase ? (
-            <CheckCircleOutline 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: '50%',
-                color: 'success.main',
-              }} 
-            />
-          ) : (
-            <CancelOutlined 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: '50%',
-                color: 'error.main',
-              }} 
-            />
-          )}
-        </ListItemIcon>
-        <ListItemText primary="One uppercase letter" />
-      </ListItem>
-      <ListItem>
-        <ListItemIcon sx={{ minWidth: 40 }}>
-          {passwordRequirements.lowercase ? (
-            <CheckCircleOutline 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: '50%',
-                color: 'success.main',
-              }} 
-            />
-          ) : (
-            <CancelOutlined 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: '50%',
-                color: 'error.main',
-              }} 
-            />
-          )}
-        </ListItemIcon>
-        <ListItemText primary="One lowercase letter" />
-      </ListItem>
-      <ListItem>
-        <ListItemIcon sx={{ minWidth: 40 }}>
-          {passwordRequirements.number ? (
-            <CheckCircleOutline 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: '50%',
-                color: 'success.main',
-              }} 
-            />
-          ) : (
-            <CancelOutlined 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: '50%',
-                color: 'error.main',
-              }} 
-            />
-          )}
-        </ListItemIcon>
-        <ListItemText primary="One number" />
-      </ListItem>
-    </List>
-  );
+  const handleUserTypeChange = (event) => {
+    setUserType(event.target.value);
+    // Reset form data when switching user type
+    setFormData({
+      password: formData.password,
+      parentName: '',
+      parentEmail: '',
+      studentName: '',
+      studentClass: '',
+      studentSection: '',
+      gemsIdLastSix: '',
+    });
+    setError(null);
+  };
 
   const validateForm = () => {
-    if (!formData.password || !formData.parentName || 
-        !formData.parentEmail || !formData.studentName || !formData.studentClass || 
-        !formData.studentSection || !formData.gemsIdLastSix) {
-      setError('Please fill in all fields');
-      return false;
-    }
-    
-    if (formData.gemsIdLastSix.length !== 6 || !/^\d+$/.test(formData.gemsIdLastSix)) {
-      setError('GEMS ID must be exactly 6 digits');
+    if (!formData.password || !passwordRequirements.length || !passwordRequirements.uppercase || 
+        !passwordRequirements.lowercase || !passwordRequirements.number) {
+      setError('Please ensure your password meets all requirements.');
       return false;
     }
 
-    if (!Object.values(passwordRequirements).every(Boolean)) {
-      setError('Password does not meet the requirements');
-      return false;
-    }
-
-    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.parentEmail)) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-
-    // Validate section (single uppercase letter)
-    if (!/^[A-Z]$/.test(formData.studentSection)) {
-      setError('Section must be a single uppercase letter (A-Z)');
-      return false;
+    if (userType === 'staff') {
+      if (!formData.parentName || !formData.parentEmail || !formData.gemsIdLastSix) {
+        setError('Please fill in all required fields.');
+        return false;
+      }
+      if (!formData.parentEmail.endsWith('@gemsedu.com')) {
+        setError('Staff email must end with @gemsedu.com');
+        return false;
+      }
+      if (!/^\d{6}$/.test(formData.gemsIdLastSix)) {
+        setError('GEMS ID must be exactly 6 digits.');
+        return false;
+      }
+    } else {
+      if (!formData.parentName || !formData.parentEmail || !formData.studentName || 
+          !formData.studentClass || !formData.studentSection || !formData.gemsIdLastSix) {
+        setError('Please fill in all required fields.');
+        return false;
+      }
+      if (!/^[A-Z]$/.test(formData.studentSection)) {
+        setError('Section must be a single letter (A-Z).');
+        return false;
+      }
+      if (!/^\d{6}$/.test(formData.gemsIdLastSix)) {
+        setError('GEMS ID must be exactly 6 digits.');
+        return false;
+      }
     }
 
     return true;
@@ -194,214 +118,225 @@ export default function SignUpForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(false);
-
-    if (!validateForm()) return;
-
     setLoading(true);
+    setError('');
+
     try {
-      // Check if GEMS ID already exists
-      const { exists, error: checkError } = await checkGemsIdExists(formData.gemsIdLastSix);
-      
-      if (checkError) throw checkError;
-      
-      if (exists) {
-        throw new Error('This GEMS ID is already registered in the system');
+      // Validate form data
+      if (!validateForm()) {
+        setLoading(false);
+        return;
       }
 
       // Sign up the user
-      const { data: signUpData, error: signUpError } = await signUpWithEmail(
-        formData.parentEmail,
-        formData.password
-      );
-
+      const { data: signUpData, error: signUpError } = await signUpWithEmail(formData.parentEmail, formData.password);
       if (signUpError) {
-        console.error('Signup error:', signUpError);
-        throw signUpError;
+        throw new Error(signUpError.message);
       }
 
-      // Create user profile
-      const profileData = {
-        id: signUpData.user.id,
-        parent_name: formData.parentName,
-        parent_email: formData.parentEmail,
-        student_name: formData.studentName,
-        student_class: formData.studentClass,
-        student_section: formData.studentSection.toUpperCase(),
-        gems_id_last_six: formData.gemsIdLastSix,
-      };
+      if (!signUpData?.user?.id) {
+        throw new Error('User creation failed');
+      }
 
-      const { error: profileError } = await createUserProfile(profileData);
+      try {
+        // Create user profile
+        const profile = {
+          id: signUpData.user.id,
+          parent_name: formData.parentName,
+          parent_email: formData.parentEmail,
+          student_name: userType === 'staff' ? formData.parentName : formData.studentName,
+          student_class: userType === 'staff' ? 'NA' : formData.studentClass,
+          student_section: userType === 'staff' ? 'S' : formData.studentSection.charAt(0).toUpperCase(),
+          gems_id_last_six: formData.gemsIdLastSix
+        };
 
-      if (profileError) {
-        // If profile creation fails, we should handle this error
-        console.error('Profile creation error:', profileError);
-        
-        // Attempt to clean up the auth user since profile creation failed
-        const { error: deleteError } = await deleteAuthUser(signUpData.user.id);
-        if (deleteError) {
-          console.error('Failed to delete auth user after profile creation failed:', deleteError);
+        const { error: profileError } = await createUserProfile(profile);
+        if (profileError) {
+          // If profile creation fails, delete the user and throw error
+          await deleteAuthUser(signUpData.user.id);
+          throw new Error(`Profile creation failed: ${profileError.message}`);
         }
-        
-        throw new Error('Failed to create user profile. Please try again.');
+
+        // Sign in the user after successful registration
+        const { error: signInError } = await signInWithEmail(formData.parentEmail, formData.password);
+        if (signInError) {
+          throw new Error(`Sign in failed: ${signInError.message}`);
+        }
+
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } catch (error) {
+        // If any error occurs after user creation but before successful profile creation,
+        // attempt to delete the user to maintain consistency
+        if (signUpData?.user?.id) {
+          await deleteAuthUser(signUpData.user.id);
+        }
+        throw error;
       }
-
-      setSuccess(true);
-
-      // Sign in immediately after signup
-      const { error: signInError } = await signInWithEmail(formData.parentEmail, formData.password);
-      if (signInError) {
-        console.error('Sign in error:', signInError);
-        throw signInError;
-      }
-
-      navigate('/shop');
     } catch (error) {
-      console.error('Error during sign up:', error);
-      setError(error.message || 'An error occurred during sign up');
-      setSuccess(false);
+      console.error('Registration error:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (success) {
-    return (
-      <Box sx={{ mt: 2 }}>
-        <Alert severity="success">
-          Sign up successful! Please check your email to confirm your account. Redirecting to shop...
-        </Alert>
-      </Box>
-    );
-  }
-
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 4 }}>
+      <FormControl component="fieldset" sx={{ mb: 3, width: '100%' }}>
+        <FormLabel component="legend">I am a:</FormLabel>
+        <RadioGroup
+          row
+          value={userType}
+          onChange={handleUserTypeChange}
+        >
+          <FormControlLabel value="parent" control={<Radio />} label="Parent" />
+          <FormControlLabel value="staff" control={<Radio />} label="Staff" />
+        </RadioGroup>
+      </FormControl>
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
-      <Typography variant="h6" gutterBottom>
-        Parent Information
-      </Typography>
-      
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Sign up successful! Redirecting to login...
+        </Alert>
+      )}
+
       <TextField
-        margin="normal"
-        required
         fullWidth
-        label="Parent Name"
+        label={userType === 'staff' ? "Name" : "Parent Name"}
         name="parentName"
         value={formData.parentName}
         onChange={handleChange}
+        margin="normal"
+        required
       />
 
       <TextField
-        margin="normal"
-        required
         fullWidth
-        label="Parent Email"
+        label={userType === 'staff' ? "Staff Email" : "Parent Email"}
         name="parentEmail"
         type="email"
         value={formData.parentEmail}
         onChange={handleChange}
-        helperText="This email will be used for signing in"
-      />
-
-      <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-        Student Information
-      </Typography>
-
-      <TextField
         margin="normal"
         required
-        fullWidth
-        label="Student Name"
-        name="studentName"
-        value={formData.studentName}
-        onChange={handleChange}
+        helperText={userType === 'staff' ? "Must end with @gemsedu.com" : ""}
       />
 
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <TextField
-          margin="normal"
-          required
-          select
-          fullWidth
-          label="Class"
-          name="studentClass"
-          value={formData.studentClass}
-          onChange={handleChange}
-        >
-          {CLASSES.map((cls) => (
-            <MenuItem key={cls} value={cls}>
-              {cls}
-            </MenuItem>
-          ))}
-        </TextField>
+      {userType === 'parent' && (
+        <>
+          <TextField
+            fullWidth
+            label="Student Name"
+            name="studentName"
+            value={formData.studentName}
+            onChange={handleChange}
+            margin="normal"
+            required
+          />
 
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          label="Section"
-          name="studentSection"
-          value={formData.studentSection}
-          onChange={handleChange}
-          inputProps={{ 
-            maxLength: 1,
-            style: { textTransform: 'uppercase' }
-          }}
-          helperText="Enter a single letter (A-Z)"
-        />
-      </Box>
+          <TextField
+            select
+            fullWidth
+            label="Class"
+            name="studentClass"
+            value={formData.studentClass}
+            onChange={handleChange}
+            margin="normal"
+            required
+          >
+            {CLASSES.map((cls) => (
+              <MenuItem key={cls} value={cls}>
+                {cls}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            fullWidth
+            label="Section"
+            name="studentSection"
+            value={formData.studentSection}
+            onChange={handleChange}
+            margin="normal"
+            required
+            inputProps={{ 
+              maxLength: 1,
+              style: { textTransform: 'uppercase' }
+            }}
+            helperText="Enter a single letter (A-Z)"
+          />
+        </>
+      )}
 
       <TextField
-        margin="normal"
-        required
         fullWidth
-        label="GEMS ID (Last 6 digits)"
+        label="Last 6 digits of GEMS ID"
         name="gemsIdLastSix"
         value={formData.gemsIdLastSix}
         onChange={handleChange}
-        inputProps={{ maxLength: 6, pattern: '[0-9]*' }}
-        helperText="Enter the last 6 digits of your ward's GEMS ID"
-      />
-
-      <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-        Account Information
-      </Typography>
-
-      <TextField
         margin="normal"
         required
+        inputProps={{ maxLength: 6 }}
+        helperText="Enter only the last 6 digits"
+      />
+
+      <TextField
         fullWidth
         label="Password"
         name="password"
         type="password"
         value={formData.password}
         onChange={handleChange}
-        error={formData.password.length > 0 && !Object.values(passwordRequirements).every(Boolean)}
+        margin="normal"
+        required
       />
-      <PasswordRequirementsList />
+
+      <Fade in={formData.password.length > 0}>
+        <List dense sx={{ bgcolor: 'background.paper', mb: 2 }}>
+          <ListItem>
+            <ListItemIcon>
+              {passwordRequirements.length ? <CheckCircleOutline color="success" /> : <CancelOutlined color="error" />}
+            </ListItemIcon>
+            <ListItemText primary="At least 8 characters" />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              {passwordRequirements.uppercase ? <CheckCircleOutline color="success" /> : <CancelOutlined color="error" />}
+            </ListItemIcon>
+            <ListItemText primary="At least one uppercase letter" />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              {passwordRequirements.lowercase ? <CheckCircleOutline color="success" /> : <CancelOutlined color="error" />}
+            </ListItemIcon>
+            <ListItemText primary="At least one lowercase letter" />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              {passwordRequirements.number ? <CheckCircleOutline color="success" /> : <CancelOutlined color="error" />}
+            </ListItemIcon>
+            <ListItemText primary="At least one number" />
+          </ListItem>
+        </List>
+      </Fade>
+
       <Button
         type="submit"
         fullWidth
         variant="contained"
-        sx={{ mt: 3, mb: 2 }}
         disabled={loading}
+        sx={{ mt: 2 }}
       >
-        Sign Up
+        {loading ? <CircularProgress size={24} /> : 'Sign Up'}
       </Button>
     </Box>
   );
