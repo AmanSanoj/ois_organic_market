@@ -1,45 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
 import { query } from '../config/database';
 
-// Initialize Supabase client for auth and storage
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Authentication functions (using Supabase)
-export const signIn = async (email, password) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (error) throw error;
-  return data;
-};
-
-export const signUp = async (email, password) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-  if (error) throw error;
-  return data;
-};
-
-export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-};
-
-// Image upload function (using Supabase Storage)
-export const uploadImage = async (file, path) => {
-  const { data, error } = await supabase.storage
-    .from('images')
-    .upload(path, file);
-  if (error) throw error;
-  return data;
-};
-
-// Products (MySQL)
+// Products
 export const getProducts = async () => {
   const products = await query(
     'SELECT * FROM products WHERE active = true ORDER BY created_at DESC'
@@ -65,7 +26,7 @@ export const getProduct = async (id) => {
 
 export const createProduct = async (productData) => {
   const result = await query(
-    'INSERT INTO products (name, price, image_url, category, stock, active) VALUES (?, ?, ?, ?, ?, true)',
+    'INSERT INTO products (name, price, image_url, category, stock) VALUES (?, ?, ?, ?, ?)',
     [
       productData.name,
       productData.price,
@@ -100,7 +61,7 @@ export const deleteProduct = async (id) => {
   return result.affectedRows > 0;
 };
 
-// Categories (MySQL)
+// Categories
 export const getCategories = async () => {
   const categories = await query(
     'SELECT * FROM categories WHERE active = true ORDER BY name'
@@ -116,7 +77,7 @@ export const getCategory = async (id) => {
   return category;
 };
 
-// Cart (MySQL)
+// Cart
 export const getCartItems = async (userId) => {
   const items = await query(
     `SELECT ci.*, p.name, p.price, p.image_url, p.stock 
@@ -176,7 +137,7 @@ export const clearCart = async (userId) => {
   return result.affectedRows > 0;
 };
 
-// Orders (MySQL)
+// Orders
 export const createOrder = async (orderData) => {
   const result = await query(
     'INSERT INTO orders (user_id, total_amount, status, shipping_address, billing_address) VALUES (?, ?, ?, ?, ?)',

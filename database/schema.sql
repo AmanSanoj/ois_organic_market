@@ -6,7 +6,6 @@ USE gems_garden;
 CREATE TABLE IF NOT EXISTS products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    description TEXT,
     price DECIMAL(10, 2) NOT NULL,
     image_url VARCHAR(255),
     category VARCHAR(100),
@@ -19,9 +18,11 @@ CREATE TABLE IF NOT EXISTS products (
 -- Orders table
 CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL, -- Supabase user ID
+    user_id VARCHAR(255) NOT NULL,  -- Supabase user ID
     total_amount DECIMAL(10, 2) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    shipping_address TEXT,
+    billing_address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -48,6 +49,17 @@ CREATE TABLE IF NOT EXISTS categories (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Cart table
+CREATE TABLE IF NOT EXISTS cart_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,  -- Supabase user ID
+    product_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
 -- Sample data for categories
 INSERT INTO categories (name, description) VALUES
     ('Vegetables', 'Fresh hydroponic vegetables'),
@@ -56,8 +68,8 @@ INSERT INTO categories (name, description) VALUES
     ('Microgreens', 'Fresh hydroponic microgreens');
 
 -- Sample data for products
-INSERT INTO products (name, description, price, category, stock) VALUES
-    ('Lettuce', 'Fresh hydroponic lettuce', 2.99, 'Vegetables', 100),
-    ('Tomatoes', 'Fresh hydroponic tomatoes', 3.99, 'Vegetables', 75),
-    ('Basil', 'Fresh hydroponic basil', 1.99, 'Herbs', 50),
-    ('Strawberries', 'Fresh hydroponic strawberries', 4.99, 'Fruits', 30);
+INSERT INTO products (name, price, category, stock) VALUES
+    ('Lettuce', 2.99, 'Vegetables', 100),
+    ('Tomatoes', 3.99, 'Vegetables', 75),
+    ('Basil', 1.99, 'Herbs', 50),
+    ('Strawberries', 4.99, 'Fruits', 30);
