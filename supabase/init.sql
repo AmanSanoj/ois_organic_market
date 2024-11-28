@@ -16,13 +16,13 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     parent_name VARCHAR(255) NOT NULL,
     parent_email VARCHAR(255) NOT NULL,
     student_name VARCHAR(255) NOT NULL,
-    student_class ENUM('KG1', 'KG2', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'NA') NOT NULL,
+    student_class ENUM('KG1', 'KG2', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12') NOT NULL,
     student_section CHAR(1) NOT NULL,
-    gems_id_last_six TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'parent',
+    gems_id_last_six VARCHAR(6) NOT NULL,
+    role VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT gems_id_unique UNIQUE (gems_id_last_six)
+    UNIQUE KEY gems_id_unique (gems_id_last_six(6))
 );
 
 -- Trigger to update timestamp
